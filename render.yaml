@@ -1,5 +1,5 @@
 services:
-  - type: web
+  - type: pserv
     name: sleepless
     runtime: docker
     dockerfilePath: ./Dockerfile
