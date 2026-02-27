@@ -1,4 +1,4 @@
-package com.devs.sleepless.model;
+package com.devs.sleepless.dto;
 
 import tools.jackson.databind.JsonNode;
 import lombok.Data;
