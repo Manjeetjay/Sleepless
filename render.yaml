@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sleepless
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      # ── App ──────────────────────────────────────────────────────────────
+      - key: SPRING_APPLICATION_NAME
+        value: sleepless
+      - key: SERVER_PORT
+        value: "8080"
+
+      # ── Database (set these in the Render dashboard) ──────────────────────
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
+
+      # ── JPA ───────────────────────────────────────────────────────────────
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: SPRING_JPA_SHOW_SQL
+        value: "false"
+      - key: SPRING_JPA_HIBERNATE_DIALECT
+        value: org.hibernate.dialect.PostgreSQLDialect
