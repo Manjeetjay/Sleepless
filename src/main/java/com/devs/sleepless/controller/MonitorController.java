@@ -5,8 +5,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+
+import com.devs.sleepless.dto.MonitorRequest;
+import com.devs.sleepless.dto.UpdateMonitor;
 import com.devs.sleepless.model.Monitor;
-import com.devs.sleepless.model.MonitorRequest;
 import com.devs.sleepless.service.MonitorService;
 import lombok.RequiredArgsConstructor;
 
@@ -35,7 +37,7 @@ public class MonitorController {
     }
 
     @PutMapping("/{id}")
-    public Monitor updateMonitor(@PathVariable Long id, @RequestBody MonitorRequest monitor) {
+    public Monitor updateMonitor(@PathVariable Long id, @RequestBody UpdateMonitor monitor) {
         return monitorService.updateMonitor(id, monitor);
     }
 

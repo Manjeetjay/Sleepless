@@ -6,8 +6,9 @@ import java.util.Optional;
 import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Service;
 
+import com.devs.sleepless.dto.MonitorRequest;
+import com.devs.sleepless.dto.UpdateMonitor;
 import com.devs.sleepless.model.Monitor;
-import com.devs.sleepless.model.MonitorRequest;
 import com.devs.sleepless.repository.MonitorRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class MonitorService {
         return saved;
     }
 
-    public Monitor updateMonitor(Long id, MonitorRequest request) {
+    public Monitor updateMonitor(Long id, UpdateMonitor request) {
         validateCron(request.getCronExpression());
         Monitor existing = monitorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Monitor not found"));
