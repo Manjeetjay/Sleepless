@@ -11,8 +11,6 @@ import io.github.cdimascio.dotenv.Dotenv;
 public class SleeplessApplication {
 
 	public static void main(String[] args) {
-		// Load .env before Spring resolves ${...} placeholders.
-		// ignoreIfMissing() makes this a no-op in prod (Render sets real env vars).
 		Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 		dotenv.entries().forEach(e -> {
 			if (System.getenv(e.getKey()) == null) {
