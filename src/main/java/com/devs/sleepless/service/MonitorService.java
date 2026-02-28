@@ -55,6 +55,7 @@ public class MonitorService {
     public Monitor deleteMonitor(Long id) {
         Monitor monitor = monitorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Monitor not found"));
+        monitorScheduler.cancel(id);
         monitorRepository.delete(monitor);
         return monitor;
     }
