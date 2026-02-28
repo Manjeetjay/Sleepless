@@ -1,5 +1,6 @@
 package com.devs.sleepless.service;
 
+import java.time.Duration;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import com.devs.sleepless.model.Monitor;
 import com.devs.sleepless.repository.MonitorRepository;
 
 import lombok.RequiredArgsConstructor;
+import reactor.util.retry.Retry;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -20,16 +22,13 @@ import tools.jackson.databind.ObjectMapper;
 public class MonitorExecutor {
 
     private static final Logger log = LoggerFactory.getLogger(MonitorExecutor.class);
-    private static final Set<String> BODY_METHODS = Set.of("POST", "PUT", "PATCH");
+    private static final Set<String> BODY_METHODS = Set.of("POST", "GET");
 
     private final WebClient webClient = WebClient.create();
     private final MonitorRepository monitorRepository;
     private final ObjectMapper objectMapper;
 
     public void execute(Monitor monitor) {
-        log.info("[CRON] Pinging monitor id={} | url={} | method={}", monitor.getId(), monitor.getUrl(),
-                monitor.getMethod());
-
         try {
             WebClient.RequestBodySpec requestSpec = webClient
                     .method(HttpMethod.valueOf(monitor.getMethod()))
@@ -46,6 +45,7 @@ public class MonitorExecutor {
 
             JsonNode response = responseSpec
                     .bodyToMono(JsonNode.class)
+                    .retryWhen(Retry.backoff(3, Duration.ofSeconds(2)))
                     .block();
 
             JsonNode expected = monitor.getExpectedStructure() != null
@@ -56,13 +56,13 @@ public class MonitorExecutor {
 
             if (valid) {
                 monitor.setSuccessCount(monitor.getSuccessCount() + 1);
-                log.info("[CRON] SUCCESS monitor id={} | url={} | successCount={} | failureCount={}",
-                        monitor.getId(), monitor.getUrl(), monitor.getSuccessCount(), monitor.getFailureCount());
+                log.info("[CRON] SUCCESS monitor url={} | successCount={} | failureCount={}",
+                        monitor.getUrl(), monitor.getSuccessCount(), monitor.getFailureCount());
             } else {
                 monitor.setFailureCount(monitor.getFailureCount() + 1);
                 log.warn(
-                        "[CRON] FAILURE monitor id={} | url={} | response did not match expected structure | successCount={} | failureCount={}",
-                        monitor.getId(), monitor.getUrl(), monitor.getSuccessCount(), monitor.getFailureCount());
+                        "[CRON] FAILURE monitor url={} | response did not match expected structure | faliureCount = {}",
+                        monitor.getUrl(), monitor.getFailureCount());
             }
 
             monitorRepository.save(monitor);
@@ -70,9 +70,7 @@ public class MonitorExecutor {
         } catch (Exception e) {
             monitor.setFailureCount(monitor.getFailureCount() + 1);
             monitorRepository.save(monitor);
-            log.error("[CRON] ERROR monitor id={} | url={} | error={} | successCount={} | failureCount={}",
-                    monitor.getId(), monitor.getUrl(), e.getMessage(), monitor.getSuccessCount(),
-                    monitor.getFailureCount());
+            log.error("[CRON] ERROR monitor url={} | error={}", monitor.getUrl(), e.getMessage());
         }
     }
 }

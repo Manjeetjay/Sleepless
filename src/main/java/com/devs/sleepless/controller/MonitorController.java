@@ -42,9 +42,8 @@ public class MonitorController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMonitor(@PathVariable Long id) {
-        monitorService.deleteMonitor(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Monitor> deleteMonitor(@PathVariable Long id) {
+        return ResponseEntity.ok(monitorService.deleteMonitor(id));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

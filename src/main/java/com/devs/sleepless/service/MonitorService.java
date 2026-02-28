@@ -52,8 +52,11 @@ public class MonitorService {
         return saved;
     }
 
-    public void deleteMonitor(Long id) {
-        monitorRepository.deleteById(id);
+    public Monitor deleteMonitor(Long id) {
+        Monitor monitor = monitorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Monitor not found"));
+        monitorRepository.delete(monitor);
+        return monitor;
     }
 
     private void validateCron(String cron) {
