@@ -30,9 +30,9 @@ public class MonitorScheduler {
     public void schedule(Monitor monitor) {
         log.info("Scheduling monitor with ID: {}", monitor.getId());
 
-        // prevent duplicate jobs
-        cancel(monitor.getId());
-
+        if(jobs.containsKey(monitor.getId())) {
+            cancel(monitor.getId());
+        } 
         ScheduledFuture<?> future =
                 scheduler.schedule(
                         () -> executor.execute(monitor),

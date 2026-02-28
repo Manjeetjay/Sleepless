@@ -24,6 +24,9 @@ public class MonitorService {
     private final ObjectMapper objectMapper;
 
     public List<Monitor> getAllMonitors() {
+        for (Monitor monitor : monitorRepository.findAll()) {
+            monitorScheduler.schedule(monitor);
+        }
         return monitorRepository.findAll();
     }
 
