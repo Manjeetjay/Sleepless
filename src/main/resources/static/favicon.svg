@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sleepless icon">
+  <defs>
+    <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#f26a4b"/>
+      <stop offset="100%" stop-color="#2a9d8f"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#fff6ea"/>
+  <path d="M38 12c-9.39 1.52-16 9.68-16 19.26C22 41.61 30.39 50 40.74 50c4.17 0 8.03-1.35 11.16-3.65-2.6.63-5.88.42-8.64-.74-7.93-3.34-11.66-12.47-8.31-20.41 1.63-3.88 4.65-6.9 8.05-8.4Z" fill="url(#g)"/>
+  <circle cx="22" cy="20" r="3" fill="#1f2940"/>
+  <circle cx="18" cy="31" r="2" fill="#1f2940" opacity=".72"/>
+</svg>
