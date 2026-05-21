@@ -33,10 +33,11 @@ function cacheElements() {
     elements.summaryTotal = document.getElementById("summary-total");
     elements.summarySuccess = document.getElementById("summary-success");
     elements.summaryFailure = document.getElementById("summary-failure");
+    elements.summaryApiState = document.getElementById("summary-api-state");
     elements.monitorCountLabel = document.getElementById("monitor-count-label");
-    elements.messageBox = document.getElementById("message-box");
     elements.monitorList = document.getElementById("monitor-list");
     elements.monitorTemplate = document.getElementById("monitor-template");
+    elements.cronPresets = document.getElementById("cron-presets");
 }
 
 function bindEvents() {
@@ -50,12 +51,28 @@ function bindEvents() {
 
     elements.form.addEventListener("submit", handleSubmit);
     elements.cancelEdit.addEventListener("click", resetForm);
+
+    // Bind click events on quick-select cron presets
+    if (elements.cronPresets) {
+        elements.cronPresets.addEventListener("click", (event) => {
+            const button = event.target.closest(".cron-preset-pill");
+            if (button) {
+                const cronExpr = button.dataset.cron;
+                if (cronExpr) {
+                    elements.cronExpression.value = cronExpr;
+                    showToast(`Applied preset: ${button.textContent}`, "success");
+                    elements.cronExpression.focus();
+                }
+            }
+        });
+    }
 }
 
 async function loadDashboard(showSuccessMessage = false) {
     state.loading = true;
     state.loadingAction = "refresh";
     setBusyState();
+    renderSkeletons();
 
     try {
         const [health, monitors] = await Promise.all([
@@ -70,13 +87,13 @@ async function loadDashboard(showSuccessMessage = false) {
         renderMonitors();
 
         if (showSuccessMessage) {
-            showMessage("Refreshed.", "success");
+            showToast("Dashboard synchronized.", "success");
         }
     } catch (error) {
         renderHealth(error);
         renderSummary();
         renderMonitors(error);
-        showMessage(error.message || "Unable to load data.", "error");
+        showToast(error.message || "Failed to retrieve monitors status.", "error");
     } finally {
         state.loading = false;
         state.loadingAction = null;
@@ -88,16 +105,17 @@ async function pingAllMonitors() {
     state.loading = true;
     state.loadingAction = "ping";
     setBusyState();
+    renderSkeletons();
 
     try {
         const monitors = await request("/api/monitors");
         state.monitors = (Array.isArray(monitors) ? monitors : []).sort(sortMonitors);
         renderSummary();
         renderMonitors();
-        showMessage("Ping all requested.", "success");
+        showToast("Synchronous ping dispatched to all endpoints.", "success");
     } catch (error) {
         renderMonitors(error);
-        showMessage(error.message || "Unable to ping monitors.", "error");
+        showToast(error.message || "Ping invocation failed.", "error");
     } finally {
         state.loading = false;
         state.loadingAction = null;
@@ -112,7 +130,7 @@ async function handleSubmit(event) {
     try {
         payload = buildPayload();
     } catch (error) {
-        showMessage(error.message, "error");
+        showToast(error.message, "error");
         return;
     }
 
@@ -121,7 +139,7 @@ async function handleSubmit(event) {
     const method = isEditing ? "PUT" : "POST";
 
     elements.submitButton.disabled = true;
-    elements.submitButton.textContent = isEditing ? "Updating..." : "Saving...";
+    elements.submitButton.querySelector("span").textContent = isEditing ? "Updating..." : "Saving...";
 
     try {
         await request(path, {
@@ -131,12 +149,12 @@ async function handleSubmit(event) {
 
         resetForm();
         await loadDashboard();
-        showMessage(isEditing ? "Monitor updated." : "Monitor created.", "success");
+        showToast(isEditing ? "Monitor configurations updated." : "New monitor initialized successfully.", "success");
     } catch (error) {
-        showMessage(error.message || "Unable to save monitor.", "error");
+        showToast(error.message || "Failed to commit monitor config.", "error");
     } finally {
         elements.submitButton.disabled = false;
-        elements.submitButton.textContent = "Save monitor";
+        elements.submitButton.querySelector("span").textContent = "Save monitor";
     }
 }
 
@@ -159,7 +177,7 @@ function parseJsonTextarea(value, label) {
     try {
         return JSON.parse(trimmed);
     } catch (error) {
-        throw new Error(`${label} is not valid JSON.`);
+        throw new Error(`${label} contains syntax issues (must be valid JSON).`);
     }
 }
 
@@ -169,17 +187,23 @@ function renderHealth(error) {
     if (error || !state.health) {
         elements.healthDot.classList.add("issue");
         elements.healthState.textContent = "Health unavailable";
+        elements.summaryApiState.textContent = "Offline";
+        elements.summaryApiState.style.color = "var(--danger)";
         return;
     }
 
     if (state.health.status === "200") {
         elements.healthDot.classList.add("ok");
         elements.healthState.textContent = "API healthy";
+        elements.summaryApiState.textContent = "Online";
+        elements.summaryApiState.style.color = "var(--success)";
         return;
     }
 
     elements.healthDot.classList.add("issue");
     elements.healthState.textContent = "API needs attention";
+    elements.summaryApiState.textContent = "Warning";
+    elements.summaryApiState.style.color = "var(--warning)";
 }
 
 function renderSummary() {
@@ -187,9 +211,9 @@ function renderSummary() {
     const totalSuccess = state.monitors.reduce((sum, monitor) => sum + (monitor.successCount || 0), 0);
     const totalFailure = state.monitors.reduce((sum, monitor) => sum + (monitor.failureCount || 0), 0);
 
-    elements.summaryTotal.textContent = `${total} ${total === 1 ? "monitor" : "monitors"}`;
-    elements.summarySuccess.textContent = `${totalSuccess} successful pings`;
-    elements.summaryFailure.textContent = `${totalFailure} failures`;
+    elements.summaryTotal.textContent = total;
+    elements.summarySuccess.textContent = totalSuccess;
+    elements.summaryFailure.textContent = totalFailure;
     elements.monitorCountLabel.textContent = `${total} ${total === 1 ? "monitor" : "monitors"}`;
 }
 
@@ -197,12 +221,12 @@ function renderMonitors(error) {
     elements.monitorList.replaceChildren();
 
     if (error) {
-        elements.monitorList.appendChild(createEmptyState("Unable to load monitors."));
+        elements.monitorList.appendChild(createEmptyState("Unable to fetch registered monitors."));
         return;
     }
 
     if (!state.monitors.length) {
-        elements.monitorList.appendChild(createEmptyState("No monitors yet."));
+        elements.monitorList.appendChild(createEmptyState("No monitors active. Configure one on the left."));
         return;
     }
 
@@ -216,30 +240,42 @@ function renderMonitors(error) {
         const previewButton = fragment.querySelector(".preview-button");
 
         fragment.querySelector(".monitor-url").textContent = monitor.url || "Untitled monitor";
-        fragment.querySelector(".method-badge").textContent = (monitor.method || "GET").toUpperCase();
-        fragment.querySelector(".monitor-cron").textContent = monitor.cronExpression || "No cron";
-        fragment.querySelector(".monitor-updated").textContent = `Updated ${formatDate(monitor.updatedAt || monitor.createdAt)}`;
-        fragment.querySelector(".status-badge").textContent = status.label;
-        fragment.querySelector(".status-badge").classList.add(status.className);
-        fragment.querySelector(".monitor-success").textContent = `Success ${monitor.successCount || 0}`;
-        fragment.querySelector(".monitor-failure").textContent = `Failure ${monitor.failureCount || 0}`;
-        fragment.querySelector(".monitor-validation").textContent = expectedJson !== null ? "Validation on" : "Validation off";
+        
+        // Method badge compilation
+        const methodBadge = fragment.querySelector(".method-badge");
+        const methodStr = (monitor.method || "GET").toUpperCase();
+        methodBadge.textContent = methodStr;
+        methodBadge.className = `method-badge ${methodStr.toLowerCase()}`;
 
+        fragment.querySelector(".cron-val").textContent = monitor.cronExpression || "No cron";
+        fragment.querySelector(".update-val").textContent = `${formatDate(monitor.updatedAt || monitor.createdAt)}`;
+        
+        const statusBadge = fragment.querySelector(".status-badge");
+        statusBadge.textContent = status.label;
+        statusBadge.className = `status-badge ${status.className}`;
+
+        fragment.querySelector(".success-val").textContent = `Success ${monitor.successCount || 0}`;
+        fragment.querySelector(".failure-val").textContent = `Failure ${monitor.failureCount || 0}`;
+        fragment.querySelector(".validation-val").textContent = expectedJson !== null ? "Validation on" : "Validation off";
+
+        // Handle JSON Preview panel trigger
         previewButton.disabled = !hasJson;
         previewButton.addEventListener("click", () => {
-            const content = {
-                requestBody: bodyJson,
-                expectedStructure: expectedJson
-            };
+            const content = {};
+            if (bodyJson !== null) content.requestBody = bodyJson;
+            if (expectedJson !== null) content.expectedStructure = expectedJson;
 
             preview.textContent = JSON.stringify(content, null, 2);
             preview.classList.toggle("hidden");
-            previewButton.textContent = preview.classList.contains("hidden") ? "JSON" : "Hide JSON";
+            
+            const isHidden = preview.classList.contains("hidden");
+            previewButton.querySelector("span").textContent = isHidden ? "JSON" : "Hide";
         });
 
+        // Form mappings
         fragment.querySelector(".edit-button").addEventListener("click", () => populateForm(monitor));
         fragment.querySelector(".delete-button").addEventListener("click", async () => {
-            const confirmed = window.confirm(`Delete the monitor for ${monitor.url}?`);
+            const confirmed = window.confirm(`Confirm deletion of monitor endpoint for: ${monitor.url}?`);
             if (!confirmed) {
                 return;
             }
@@ -250,9 +286,9 @@ function renderMonitors(error) {
                     resetForm();
                 }
                 await loadDashboard();
-                showMessage("Monitor deleted.", "success");
+                showToast("Monitor configuration deleted.", "success");
             } catch (deleteError) {
-                showMessage(deleteError.message || "Unable to delete monitor.", "error");
+                showToast(deleteError.message || "Failed to purge monitor.", "error");
             }
         });
 
@@ -264,7 +300,7 @@ function populateForm(monitor) {
     state.editingId = monitor.id;
     elements.formTitle.textContent = "Edit monitor";
     elements.cancelEdit.hidden = false;
-    elements.submitButton.textContent = "Save monitor";
+    elements.submitButton.querySelector("span").textContent = "Save monitor";
     elements.url.value = monitor.url || "";
     elements.method.value = (monitor.method || "GET").toUpperCase();
     elements.cronExpression.value = monitor.cronExpression || "";
@@ -278,27 +314,30 @@ function resetForm() {
     elements.form.reset();
     elements.formTitle.textContent = "Create monitor";
     elements.cancelEdit.hidden = true;
-    elements.submitButton.textContent = "Save monitor";
+    elements.submitButton.querySelector("span").textContent = "Save monitor";
 }
 
 function setBusyState() {
     elements.refreshButton.disabled = state.loading;
     elements.pingAllButton.disabled = state.loading;
 
+    const refreshText = elements.refreshButton.querySelector("span");
+    const pingText = elements.pingAllButton.querySelector("span");
+
     if (state.loadingAction === "refresh") {
-        elements.refreshButton.textContent = "Refreshing...";
-        elements.pingAllButton.textContent = "Ping all";
+        if (refreshText) refreshText.textContent = "Synchronizing...";
+        if (pingText) pingText.textContent = "Ping all";
         return;
     }
 
     if (state.loadingAction === "ping") {
-        elements.refreshButton.textContent = "Refresh";
-        elements.pingAllButton.textContent = "Pinging...";
+        if (refreshText) refreshText.textContent = "Refresh";
+        if (pingText) pingText.textContent = "Pinging...";
         return;
     }
 
-    elements.refreshButton.textContent = "Refresh";
-    elements.pingAllButton.textContent = "Ping all";
+    if (refreshText) refreshText.textContent = "Refresh";
+    if (pingText) pingText.textContent = "Ping all";
 }
 
 function normalizeJsonField(value) {
@@ -343,7 +382,7 @@ function getStatusMeta(monitor) {
     const total = success + failure;
 
     if (!total) {
-        return { label: "New", className: "neutral" };
+        return { label: "New Connection", className: "neutral" };
     }
 
     if (!success) {
@@ -351,10 +390,10 @@ function getStatusMeta(monitor) {
     }
 
     if (failure === 0) {
-        return { label: "Healthy", className: "success" };
+        return { label: "Operational", className: "success" };
     }
 
-    return { label: "Warning", className: "warning" };
+    return { label: "De-stabilized", className: "warning" };
 }
 
 function sortMonitors(left, right) {
@@ -363,26 +402,74 @@ function sortMonitors(left, right) {
     return rightTime - leftTime;
 }
 
+function renderSkeletons() {
+    elements.monitorList.replaceChildren();
+    
+    // Draw three elegant shimmering cards
+    for (let i = 0; i < 3; i++) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "monitor-item skeleton-card";
+        wrapper.innerHTML = `
+            <div class="monitor-main">
+                <div class="monitor-info" style="width: 70%;">
+                    <div class="skeleton-text heading"></div>
+                    <div class="monitor-meta">
+                        <span class="skeleton-text pill"></span>
+                        <span class="skeleton-text pill" style="width: 100px;"></span>
+                    </div>
+                </div>
+                <span class="skeleton-text pill" style="width: 75px; height: 26px;"></span>
+            </div>
+            <div class="monitor-stats" style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px;">
+                <span class="skeleton-text pill" style="width: 80px;"></span>
+                <span class="skeleton-text pill" style="width: 80px;"></span>
+                <span class="skeleton-text pill" style="width: 90px;"></span>
+            </div>
+        `;
+        elements.monitorList.appendChild(wrapper);
+    }
+}
+
 function createEmptyState(text) {
     const wrapper = document.createElement("div");
     wrapper.className = "empty-state";
 
-    const paragraph = document.createElement("p");
-    paragraph.textContent = text;
-
-    wrapper.appendChild(paragraph);
+    // Use our embedded server icon in empty state
+    wrapper.innerHTML = `
+        <svg><use href="#icon-servers"></use></svg>
+        <p>${escapeHtml(text)}</p>
+    `;
     return wrapper;
 }
 
-function showMessage(text, type) {
-    elements.messageBox.textContent = text;
-    elements.messageBox.className = `message ${type}`;
-    elements.messageBox.classList.remove("hidden");
+function escapeHtml(str) {
+    return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+    );
+}
 
-    window.clearTimeout(showMessage.timeoutId);
-    showMessage.timeoutId = window.setTimeout(() => {
-        elements.messageBox.classList.add("hidden");
-    }, 3000);
+function showToast(message, type = "success") {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+
+    const iconId = type === "success" ? "icon-toast-success" : "icon-toast-error";
+    toast.innerHTML = `
+        <svg><use href="#${iconId}"></use></svg>
+        <span>${escapeHtml(message)}</span>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto animate slideout and cleanup after 3.2s
+    setTimeout(() => {
+        toast.classList.add("fade-out");
+        toast.addEventListener("animationend", () => {
+            toast.remove();
+        });
+    }, 3200);
 }
 
 async function request(path, options = {}) {
@@ -412,7 +499,7 @@ async function request(path, options = {}) {
 
     if (!response.ok) {
         const message = data && typeof data === "object" ? data.error || data.message : null;
-        throw new Error(message || `Request failed with status ${response.status}.`);
+        throw new Error(message || `API error (HTTP status: ${response.status}).`);
     }
 
     return data;

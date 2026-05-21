@@ -3,17 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sleepless</title>
-    <meta name="description" content="Minimal UI for managing Sleepless monitors.">
+    <title>Sleepless — Dev Service Monitor</title>
+    <meta name="description" content="State-of-the-art glassmorphic dashboard for managing Sleepless ping monitors. Keep your services awake with style.">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    
+    <!-- Link the CSS design system -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="app-shell">
+        <!-- Top Navigation Header -->
         <header class="topbar">
             <div class="brand">
-                <h1>Sleepless</h1>
-                <p>Keep your services awake.</p>
+                <div class="brand-title-wrap">
+                    <div class="brand-logo" aria-hidden="true">
+                        <svg><use href="#icon-activity"></use></svg>
+                    </div>
+                    <h1>Sleepless</h1>
+                </div>
+                <p>Keep your critical services awake and healthy</p>
             </div>
 
             <div class="topbar-actions">
@@ -21,33 +29,74 @@
                     <span class="status-dot" id="health-dot"></span>
                     <span id="health-state">Checking health...</span>
                 </div>
-                <button class="button button-secondary" type="button" id="ping-all">
-                    Ping all
+                <button class="button button-secondary" type="button" id="ping-all" aria-label="Trigger all pings">
+                    <svg><use href="#icon-ping"></use></svg>
+                    <span>Ping all</span>
                 </button>
-                <button class="button button-secondary" type="button" id="refresh-dashboard">
-                    Refresh
+                <button class="button button-secondary" type="button" id="refresh-dashboard" aria-label="Refresh dashboard data">
+                    <svg><use href="#icon-refresh"></use></svg>
+                    <span>Refresh</span>
                 </button>
             </div>
         </header>
 
-        <section class="summary" aria-label="Summary">
-            <span id="summary-total">0 monitors</span>
-            <span id="summary-success">0 successful pings</span>
-            <span id="summary-failure">0 failures</span>
+        <!-- Stats Overview Cards Grid -->
+        <section class="summary-grid" aria-label="Dashboard Statistics Overview">
+            <div class="stat-card total">
+                <div class="stat-icon">
+                    <svg><use href="#icon-servers"></use></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="summary-total">0</span>
+                    <span class="stat-label">Total Monitors</span>
+                </div>
+            </div>
+
+            <div class="stat-card success-card">
+                <div class="stat-icon">
+                    <svg><use href="#icon-check-circle"></use></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="summary-success">0</span>
+                    <span class="stat-label">Successful Pings</span>
+                </div>
+            </div>
+
+            <div class="stat-card failure-card">
+                <div class="stat-icon">
+                    <svg><use href="#icon-alert-circle"></use></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="summary-failure">0</span>
+                    <span class="stat-label">Failed Pings</span>
+                </div>
+            </div>
+
+            <div class="stat-card api-card">
+                <div class="stat-icon">
+                    <svg><use href="#icon-activity"></use></svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="summary-api-state">Offline</span>
+                    <span class="stat-label">API Health State</span>
+                </div>
+            </div>
         </section>
 
+        <!-- Layout Workspace -->
         <main class="layout">
-            <section class="panel">
+            <!-- Left Side: Config Panel -->
+            <section class="panel" aria-labelledby="form-title-heading">
                 <div class="section-header">
                     <h2 id="form-title">Create monitor</h2>
                     <button class="button button-secondary" id="cancel-edit" type="button" hidden>
-                        Cancel edit
+                        <span>Cancel</span>
                     </button>
                 </div>
 
-                <form id="monitor-form" class="monitor-form">
-                    <label class="field">
-                        <span>Endpoint URL</span>
+                <form id="monitor-form" class="monitor-form" autocomplete="off">
+                    <div class="field">
+                        <label for="url">Endpoint URL</label>
                         <input
                             id="url"
                             name="url"
@@ -55,19 +104,19 @@
                             placeholder="https://api.example.com/health"
                             required
                         >
-                    </label>
+                    </div>
 
                     <div class="field-row">
-                        <label class="field">
-                            <span>HTTP method</span>
+                        <div class="field">
+                            <label for="method">Method</label>
                             <select id="method" name="method">
                                 <option value="GET">GET</option>
                                 <option value="POST">POST</option>
                             </select>
-                        </label>
+                        </div>
 
-                        <label class="field">
-                            <span>Cron expression</span>
+                        <div class="field">
+                            <label for="cronExpression">Cron schedule</label>
                             <input
                                 id="cronExpression"
                                 name="cronExpression"
@@ -75,86 +124,185 @@
                                 placeholder="0 */15 * * * *"
                                 required
                             >
-                        </label>
+                        </div>
                     </div>
 
-                    <label class="field">
-                        <span>Request body JSON</span>
+                    <!-- Cron Quick Presets -->
+                    <div class="field">
+                        <span style="font-size: 0.8rem; font-weight:600; color: var(--text-muted);">Quick Presets</span>
+                        <div class="cron-presets" id="cron-presets" role="group" aria-label="Cron schedule presets">
+                            <button type="button" class="cron-preset-pill" data-cron="0 */1 * * * *">Every min</button>
+                            <button type="button" class="cron-preset-pill" data-cron="0 */5 * * * *">Every 5m</button>
+                            <button type="button" class="cron-preset-pill" data-cron="0 */15 * * * *">Every 15m</button>
+                            <button type="button" class="cron-preset-pill" data-cron="0 0 * * * *">Every hr</button>
+                            <button type="button" class="cron-preset-pill" data-cron="0 0 0 * * *">Every day</button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="requestBody">Request body JSON (Optional)</label>
                         <textarea
                             id="requestBody"
                             name="requestBody"
-                            rows="6"
-                            placeholder='{"ping":"keep-alive"}'
+                            placeholder='{ "ping": "keep-alive" }'
                         ></textarea>
-                    </label>
+                    </div>
 
-                    <label class="field">
-                        <span>Expected response JSON</span>
+                    <div class="field">
+                        <label for="expectedStructure">Expected response JSON (Optional)</label>
                         <textarea
                             id="expectedStructure"
                             name="expectedStructure"
-                            rows="6"
-                            placeholder='{"status":"ok"}'
+                            placeholder='{ "status": "ok" }'
                         ></textarea>
-                    </label>
-
-                    <p class="field-note">Leave the JSON fields empty if you do not need them.</p>
+                    </div>
 
                     <div class="form-actions">
                         <button class="button button-primary" id="submit-button" type="submit">
-                            Save monitor
+                            <span>Save monitor</span>
                         </button>
                     </div>
                 </form>
             </section>
 
-            <section class="panel">
-                <div class="section-header section-header-list">
-                    <h2>Monitors</h2>
+            <!-- Right Side: Monitors List -->
+            <section class="panel" aria-labelledby="monitors-list-heading">
+                <div class="section-header">
+                    <h2 id="monitors-list-heading">Monitors</h2>
                     <span class="section-meta" id="monitor-count-label">0 monitors</span>
                 </div>
 
-                <div class="message hidden" id="message-box" role="status" aria-live="polite"></div>
-
                 <div class="monitor-list" id="monitor-list">
+                    <!-- Dynamic items compile here -->
                     <div class="empty-state">
-                        <p>No monitors yet.</p>
+                        <svg><use href="#icon-servers"></use></svg>
+                        <p>No monitors registered yet.</p>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
+    <!-- Floating Toasts Box -->
+    <div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Monitor Card Template -->
     <template id="monitor-template">
         <article class="monitor-item">
             <div class="monitor-main">
                 <div class="monitor-info">
                     <div class="monitor-url"></div>
                     <div class="monitor-meta">
-                        <span class="method-badge"></span>
-                        <span class="monitor-cron"></span>
-                        <span class="monitor-updated"></span>
+                        <span class="method-badge">GET</span>
+                        <span class="monitor-cron">
+                            <svg><use href="#icon-clock"></use></svg>
+                            <span class="cron-val"></span>
+                        </span>
+                        <span class="monitor-updated">
+                            <svg><use href="#icon-refresh"></use></svg>
+                            <span class="update-val"></span>
+                        </span>
                     </div>
                 </div>
-                <span class="status-badge"></span>
+                <span class="status-badge">Checking</span>
             </div>
 
             <div class="monitor-stats">
-                <span class="monitor-success"></span>
-                <span class="monitor-failure"></span>
-                <span class="monitor-validation"></span>
+                <span class="stat-item success">
+                    <svg><use href="#icon-check-circle"></use></svg>
+                    <span class="success-val">Success 0</span>
+                </span>
+                <span class="stat-item failure">
+                    <svg><use href="#icon-alert-circle"></use></svg>
+                    <span class="failure-val">Failure 0</span>
+                </span>
+                <span class="stat-item validation">
+                    <svg><use href="#icon-code"></use></svg>
+                    <span class="validation-val">Validation off</span>
+                </span>
             </div>
 
-            <pre class="json-preview hidden"></pre>
+            <!-- Monospace Code Preview Box -->
+            <pre class="json-preview hidden" aria-label="JSON Structure Preview"></pre>
 
             <div class="monitor-actions">
-                <button type="button" class="button button-secondary preview-button">JSON</button>
-                <button type="button" class="button button-secondary edit-button">Edit</button>
-                <button type="button" class="button button-danger delete-button">Delete</button>
+                <button type="button" class="button button-secondary preview-button">
+                    <svg><use href="#icon-code"></use></svg>
+                    <span>JSON</span>
+                </button>
+                <button type="button" class="button button-secondary edit-button">
+                    <svg><use href="#icon-edit"></use></svg>
+                    <span>Edit</span>
+                </button>
+                <button type="button" class="button button-danger delete-button">
+                    <svg><use href="#icon-trash"></use></svg>
+                    <span>Delete</span>
+                </button>
             </div>
         </article>
     </template>
 
+    <!-- Global Inline SVG Asset Pool -->
+    <svg class="hidden" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <symbol id="icon-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </symbol>
+            <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M16 16h5v5"/>
+            </symbol>
+            <symbol id="icon-ping" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </symbol>
+            <symbol id="icon-servers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                <line x1="6" y1="6" x2="6.01" y2="6"/>
+                <line x1="6" y1="18" x2="6.01" y2="18"/>
+            </symbol>
+            <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </symbol>
+            <symbol id="icon-alert-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </symbol>
+            <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </symbol>
+            <symbol id="icon-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+            </symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+            </symbol>
+            <symbol id="icon-toast-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </symbol>
+            <symbol id="icon-toast-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </symbol>
+        </defs>
+    </svg>
+
+    <!-- Connect Javascript application logic -->
     <script src="app.js" defer></script>
 </body>
 </html>
