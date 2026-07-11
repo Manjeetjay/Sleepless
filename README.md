@@ -1,3 +1,4 @@
+
 # 🌙 Sleepless
 
 > **Your services should never fall asleep.**
@@ -39,15 +40,6 @@ Sleepless solves this automatically by sending scheduled requests to your servic
 
 Use the public repository: [github.com/Manjeetjay/Sleepless](https://github.com/Manjeetjay/Sleepless)
 
-**Steps:**
-
-1. Create a **New Blueprint** on Render, or deploy frontend/backend individually
-2. Connect the repository
-3. Select **Deploy using render.yaml**
-4. Set up the Environment Variables (database URL, user, pass) on Render.
-5. Click **Create Web Service**
-
-Render will build and deploy both the backend and frontend automatically.
 
 ## 📜 License
 
