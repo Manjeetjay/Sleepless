@@ -6,7 +6,7 @@
 
 Perfect for platforms like **Render**, **Heroku**, or any backend that sleeps after inactivity — Sleepless ensures your APIs stay warm and responsive.
 
-Built with **Spring Boot 4**, **PostgreSQL**, and fully **Dockerized** for easy deployment.
+Built with **Spring Boot 4**, **PostgreSQL**, **React (Vite)**, and fully **Dockerized** for easy deployment.
 
 ---
 
@@ -19,6 +19,7 @@ Sleepless solves this automatically by sending scheduled requests to your servic
 - ✅ Self-hosted
 - ✅ Lightweight
 - ✅ No external uptime services required
+- ✅ Beautiful UI
 
 ---
     
@@ -40,21 +41,13 @@ Use the public repository: [github.com/Manjeetjay/Sleepless](https://github.com/
 
 **Steps:**
 
-1. Create a **New Web Service** on Render
+1. Create a **New Blueprint** on Render, or deploy frontend/backend individually
 2. Connect the repository
 3. Select **Deploy using render.yaml**
-4. Add the following environment variables:
-
-```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://your-db-host/dbname
-SPRING_DATASOURCE_USERNAME=your-db-username
-SPRING_DATASOURCE_PASSWORD=your-db-password
-SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-```
-
+4. Set up the Environment Variables (database URL, user, pass) on Render.
 5. Click **Create Web Service**
 
-Render will build and deploy automatically.
+Render will build and deploy both the backend and frontend automatically.
 
 ## 📜 License
 
