@@ -1,30 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider, useToast } from './components/Toast';
 import Topbar from './components/Topbar';
-import SummaryGrid from './components/SummaryGrid';
-import MonitorForm from './components/MonitorForm';
-import MonitorList from './components/MonitorList';
-import {
-  fetchHealth,
-  fetchMonitors,
-  createMonitor,
-  updateMonitor,
-  deleteMonitor,
-} from './api';
+import Dashboard from './pages/Dashboard';
+import ManageMonitor from './pages/ManageMonitor';
+import { fetchHealth, fetchMonitors, createMonitor, updateMonitor, deleteMonitor } from './api';
 
 export default function App() {
   return (
     <ToastProvider>
-      <Dashboard />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </ToastProvider>
   );
 }
 
-function Dashboard() {
+function AppContent() {
   const showToast = useToast();
   const [monitors, setMonitors] = useState([]);
   const [health, setHealth] = useState(null);
-  const [editingMonitor, setEditingMonitor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingAction, setLoadingAction] = useState(null);
   const [error, setError] = useState(null);
@@ -82,29 +77,26 @@ function Dashboard() {
     }
   }
 
-  async function handleSubmit(payload) {
-    const isEditing = editingMonitor !== null;
+  async function handleSubmitMonitor(payload, isEditing, id) {
     try {
       if (isEditing) {
-        await updateMonitor(editingMonitor.id, payload);
+        await updateMonitor(id, payload);
         showToast('Monitor configurations updated.', 'success');
       } else {
         await createMonitor(payload);
         showToast('New monitor initialized successfully.', 'success');
       }
-      setEditingMonitor(null);
       await loadDashboard();
+      return true;
     } catch (err) {
       showToast(err.message || 'Failed to commit monitor config.', 'error');
+      return false;
     }
   }
 
-  async function handleDelete(id) {
+  async function handleDeleteMonitor(id) {
     try {
       await deleteMonitor(id);
-      if (editingMonitor && editingMonitor.id === id) {
-        setEditingMonitor(null);
-      }
       await loadDashboard();
       showToast('Monitor configuration deleted.', 'success');
     } catch (err) {
@@ -113,7 +105,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="max-w-7xl mx-auto px-6 py-10 min-h-screen flex flex-col gap-10">
       <Topbar
         health={health}
         loading={loading}
@@ -121,23 +113,27 @@ function Dashboard() {
         onRefresh={() => loadDashboard(true)}
         onPingAll={handlePingAll}
       />
-
-      <SummaryGrid monitors={monitors} health={health} />
-
-      <main className="layout">
-        <MonitorForm
-          editingMonitor={editingMonitor}
-          onSubmit={handleSubmit}
-          onCancelEdit={() => setEditingMonitor(null)}
-        />
-        <MonitorList
-          monitors={monitors}
-          loading={loading}
-          error={error}
-          onEdit={(monitor) => setEditingMonitor(monitor)}
-          onDelete={handleDelete}
-        />
-      </main>
+      <Routes>
+        <Route path="/" element={
+          <Dashboard 
+            monitors={monitors} 
+            health={health} 
+            loading={loading} 
+            error={error} 
+            onDelete={handleDeleteMonitor} 
+          />
+        } />
+        <Route path="/monitors/new" element={
+          <ManageMonitor onSubmit={(p) => handleSubmitMonitor(p, false)} />
+        } />
+        <Route path="/monitors/:id/edit" element={
+          <ManageMonitor 
+            monitors={monitors}
+            onSubmit={(p, id) => handleSubmitMonitor(p, true, id)} 
+          />
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

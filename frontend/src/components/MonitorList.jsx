@@ -1,35 +1,32 @@
 import { useState } from 'react';
-import {
-  ClockIcon,
-  RefreshIcon,
-  CheckCircleIcon,
-  AlertCircleIcon,
-  CodeIcon,
-  EditIcon,
-  TrashIcon,
-  ServersIcon,
-} from './Icons';
+import { Link } from 'react-router-dom';
+import { 
+  Clock, RefreshCw, CheckCircle2, AlertCircle, 
+  Code2, Edit2, Trash2, Server 
+} from 'lucide-react';
 
-export default function MonitorList({ monitors, loading, error, onEdit, onDelete }) {
+export default function MonitorList({ monitors, loading, error, onDelete }) {
   const count = monitors.length;
 
   return (
-    <section className="panel" aria-labelledby="monitors-list-heading">
-      <div className="section-header">
-        <h2 id="monitors-list-heading">Monitors</h2>
-        <span className="section-meta">{count} {count === 1 ? 'monitor' : 'monitors'}</span>
+    <section className="glass-panel p-8" aria-labelledby="monitors-list-heading">
+      <div className="flex justify-between items-center mb-6">
+        <h2 id="monitors-list-heading" className="text-xl font-bold text-white">Active Monitors</h2>
+        <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium text-gray-400">
+          {count} {count === 1 ? 'monitor' : 'monitors'}
+        </span>
       </div>
 
-      <div className="monitor-list">
+      <div className="flex flex-col gap-4">
         {loading ? (
           <SkeletonCards />
         ) : error ? (
           <EmptyState text="Unable to fetch registered monitors." />
         ) : count === 0 ? (
-          <EmptyState text="No monitors active. Configure one on the left." />
+          <EmptyState text="No monitors active. Add one to get started." />
         ) : (
           monitors.map((monitor) => (
-            <MonitorCard key={monitor.id} monitor={monitor} onEdit={onEdit} onDelete={onDelete} />
+            <MonitorCard key={monitor.id} monitor={monitor} onDelete={onDelete} />
           ))
         )}
       </div>
@@ -37,7 +34,7 @@ export default function MonitorList({ monitors, loading, error, onEdit, onDelete
   );
 }
 
-function MonitorCard({ monitor, onEdit, onDelete }) {
+function MonitorCard({ monitor, onDelete }) {
   const [showJson, setShowJson] = useState(false);
   const bodyJson = normalizeJsonField(monitor.requestBody);
   const expectedJson = normalizeJsonField(monitor.expectedStructure);
@@ -46,95 +43,114 @@ function MonitorCard({ monitor, onEdit, onDelete }) {
   const methodStr = (monitor.method || 'GET').toUpperCase();
 
   function handleDeleteClick() {
-    const confirmed = window.confirm(`Confirm deletion of monitor endpoint for: ${monitor.url}?`);
-    if (confirmed) onDelete(monitor.id);
+    if (window.confirm(`Confirm deletion of monitor endpoint for: ${monitor.url}?`)) {
+      onDelete(monitor.id);
+    }
   }
 
   const jsonContent = {};
   if (bodyJson !== null) jsonContent.requestBody = bodyJson;
   if (expectedJson !== null) jsonContent.expectedStructure = expectedJson;
 
+  const methodColor = methodStr === 'GET' 
+    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+    : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+
   return (
-    <article className="monitor-item">
-      <div className="monitor-main">
-        <div className="monitor-info">
-          <div className="monitor-url">{monitor.url || 'Untitled monitor'}</div>
-          <div className="monitor-meta">
-            <span className={`method-badge ${methodStr.toLowerCase()}`}>{methodStr}</span>
-            <span className="monitor-cron">
-              <ClockIcon />
-              <span>{monitor.cronExpression || 'No cron'}</span>
+    <article className="glass-card p-5 group">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="flex flex-col gap-2 min-w-0 flex-1">
+          <div className="text-lg font-semibold text-white break-all">
+            {monitor.url || 'Untitled monitor'}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+            <span className={`px-2 py-0.5 rounded-md border font-bold tracking-wider ${methodColor}`}>
+              {methodStr}
             </span>
-            <span className="monitor-updated">
-              <RefreshIcon />
-              <span>{formatDate(monitor.updatedAt || monitor.createdAt)}</span>
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/5">
+              <Clock className="w-3.5 h-3.5" />
+              {monitor.cronExpression || 'No cron'}
+            </span>
+            <span className="flex items-center gap-1.5 text-gray-500">
+              <RefreshCw className="w-3.5 h-3.5" />
+              {formatDate(monitor.updatedAt || monitor.createdAt)}
             </span>
           </div>
         </div>
-        <span className={`status-badge ${status.className}`}>{status.label}</span>
+        
+        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${status.className} whitespace-nowrap`}>
+          {status.label}
+        </span>
       </div>
 
-      <div className="monitor-stats">
-        <span className="stat-item success">
-          <CheckCircleIcon />
-          <span>Success {monitor.successCount || 0}</span>
+      <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-white/5 text-sm">
+        <span className="flex items-center gap-1.5 font-medium text-emerald-400">
+          <CheckCircle2 className="w-4 h-4" />
+          Success {monitor.successCount || 0}
         </span>
-        <span className="stat-item failure">
-          <AlertCircleIcon />
-          <span>Failure {monitor.failureCount || 0}</span>
+        <span className="flex items-center gap-1.5 font-medium text-rose-400">
+          <AlertCircle className="w-4 h-4" />
+          Failure {monitor.failureCount || 0}
         </span>
-        <span className="stat-item validation">
-          <CodeIcon />
-          <span>{expectedJson !== null ? 'Validation on' : 'Validation off'}</span>
+        <span className="flex items-center gap-1.5 font-medium text-gray-500">
+          <Code2 className="w-4 h-4" />
+          {expectedJson !== null ? 'Validation on' : 'Validation off'}
         </span>
+        
+        <div className="flex items-center gap-2 ml-auto">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors disabled:opacity-30"
+            disabled={!hasJson}
+            onClick={() => setShowJson((prev) => !prev)}
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            {showJson ? 'Hide JSON' : 'View JSON'}
+          </button>
+          <Link 
+            to={`/monitors/${monitor.id}/edit`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium transition-colors"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            Edit
+          </Link>
+          <button 
+            type="button" 
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium transition-colors" 
+            onClick={handleDeleteClick}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+        </div>
       </div>
 
       {showJson && (
-        <pre className="json-preview" aria-label="JSON Structure Preview">
+        <pre className="mt-4 p-4 bg-black/50 border border-white/10 rounded-xl text-indigo-300 text-sm font-mono overflow-x-auto animate-[fadeIn_0.2s_ease-out_forwards]">
           {JSON.stringify(jsonContent, null, 2)}
         </pre>
       )}
-
-      <div className="monitor-actions">
-        <button
-          type="button"
-          className="button button-secondary"
-          disabled={!hasJson}
-          onClick={() => setShowJson((prev) => !prev)}
-        >
-          <CodeIcon />
-          <span>{showJson ? 'Hide' : 'JSON'}</span>
-        </button>
-        <button type="button" className="button button-secondary" onClick={() => onEdit(monitor)}>
-          <EditIcon />
-          <span>Edit</span>
-        </button>
-        <button type="button" className="button button-danger" onClick={handleDeleteClick}>
-          <TrashIcon />
-          <span>Delete</span>
-        </button>
-      </div>
     </article>
   );
 }
 
 function SkeletonCards() {
   return Array.from({ length: 3 }, (_, i) => (
-    <div key={i} className="monitor-item skeleton-card">
-      <div className="monitor-main">
-        <div className="monitor-info" style={{ width: '70%' }}>
-          <div className="skeleton-text heading" />
-          <div className="monitor-meta">
-            <span className="skeleton-text pill" />
-            <span className="skeleton-text pill" style={{ width: 100 }} />
+    <div key={i} className="glass-card p-5 animate-pulse">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex flex-col gap-3 w-2/3">
+          <div className="h-6 bg-white/10 rounded-lg w-3/4" />
+          <div className="flex gap-2">
+            <div className="h-5 bg-white/10 rounded-md w-12" />
+            <div className="h-5 bg-white/10 rounded-md w-24" />
           </div>
         </div>
-        <span className="skeleton-text pill" style={{ width: 75, height: 26 }} />
+        <div className="h-6 bg-white/10 rounded-full w-20" />
       </div>
-      <div className="monitor-stats" style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-        <span className="skeleton-text pill" style={{ width: 80 }} />
-        <span className="skeleton-text pill" style={{ width: 80 }} />
-        <span className="skeleton-text pill" style={{ width: 90 }} />
+      <div className="flex gap-4 mt-5 pt-4 border-t border-white/5">
+        <div className="h-4 bg-white/10 rounded w-20" />
+        <div className="h-4 bg-white/10 rounded w-20" />
+        <div className="h-4 bg-white/10 rounded w-24" />
       </div>
     </div>
   ));
@@ -142,9 +158,9 @@ function SkeletonCards() {
 
 function EmptyState({ text }) {
   return (
-    <div className="empty-state">
-      <ServersIcon />
-      <p>{text}</p>
+    <div className="flex flex-col items-center justify-center py-16 px-6 border-2 border-dashed border-white/10 rounded-2xl text-gray-500 bg-white/5">
+      <Server className="w-12 h-12 mb-4 opacity-50" />
+      <p className="font-medium text-center">{text}</p>
     </div>
   );
 }
@@ -168,8 +184,8 @@ function getStatusMeta(monitor) {
   const success = monitor.successCount || 0;
   const failure = monitor.failureCount || 0;
   const total = success + failure;
-  if (!total) return { label: 'New Connection', className: 'neutral' };
-  if (!success) return { label: 'Failing', className: 'danger' };
-  if (failure === 0) return { label: 'Operational', className: 'success' };
-  return { label: 'De-stabilized', className: 'warning' };
+  if (!total) return { label: 'New Connection', className: 'bg-gray-500/10 text-gray-400 border-gray-500/20' };
+  if (!success) return { label: 'Failing', className: 'bg-rose-500/10 text-rose-400 border-rose-500/20' };
+  if (failure === 0) return { label: 'Operational', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+  return { label: 'De-stabilized', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' };
 }

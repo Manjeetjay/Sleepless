@@ -18,7 +18,7 @@ export default function MonitorForm({ editingMonitor, onSubmit, onCancelEdit }) 
   const [expectedStructure, setExpectedStructure] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isEditing = editingMonitor !== null;
+  const isEditing = editingMonitor !== null && editingMonitor !== undefined;
 
   useEffect(() => {
     if (editingMonitor) {
@@ -27,6 +27,8 @@ export default function MonitorForm({ editingMonitor, onSubmit, onCancelEdit }) 
       setCronExpression(editingMonitor.cronExpression || '');
       setRequestBody(formatJson(normalizeJsonField(editingMonitor.requestBody)));
       setExpectedStructure(formatJson(normalizeJsonField(editingMonitor.expectedStructure)));
+    } else {
+      resetForm();
     }
   }, [editingMonitor]);
 
@@ -36,11 +38,6 @@ export default function MonitorForm({ editingMonitor, onSubmit, onCancelEdit }) 
     setCronExpression('');
     setRequestBody('');
     setExpectedStructure('');
-  }
-
-  function handleCancel() {
-    resetForm();
-    onCancelEdit();
   }
 
   async function handleSubmit(e) {
@@ -68,104 +65,115 @@ export default function MonitorForm({ editingMonitor, onSubmit, onCancelEdit }) 
     setSubmitting(true);
     try {
       await onSubmit(payload);
-      resetForm();
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <section className="panel" aria-labelledby="form-title-heading">
-      <div className="section-header">
-        <h2 id="form-title">{isEditing ? 'Edit monitor' : 'Create monitor'}</h2>
+    <section className="glass-panel p-8" aria-labelledby="form-title-heading">
+      <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
+        <h2 id="form-title" className="text-xl font-bold text-white">
+          {isEditing ? 'Edit Monitor' : 'Create New Monitor'}
+        </h2>
         {isEditing && (
-          <button className="button button-secondary" type="button" onClick={handleCancel}>
-            <span>Cancel</span>
+          <button 
+            type="button" 
+            className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+            onClick={onCancelEdit}
+          >
+            Cancel Edit
           </button>
         )}
       </div>
 
-      <form className="monitor-form" autoComplete="off" onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="url">Endpoint URL</label>
+      <form className="flex flex-col gap-6" autoComplete="off" onSubmit={handleSubmit}>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="url" className="text-sm font-medium text-gray-300">Endpoint URL</label>
           <input
             id="url"
-            name="url"
             type="url"
             placeholder="https://api.example.com/health"
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
           />
         </div>
 
-        <div className="field-row">
-          <div className="field">
-            <label htmlFor="method">Method</label>
-            <select id="method" name="method" value={method} onChange={(e) => setMethod(e.target.value)}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="method" className="text-sm font-medium text-gray-300">Method</label>
+            <select 
+              id="method" 
+              value={method} 
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all appearance-none"
+            >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
             </select>
           </div>
 
-          <div className="field">
-            <label htmlFor="cronExpression">Cron schedule</label>
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label htmlFor="cronExpression" className="text-sm font-medium text-gray-300">Cron Schedule</label>
             <input
               id="cronExpression"
-              name="cronExpression"
               type="text"
               placeholder="0 */15 * * * *"
               required
               value={cronExpression}
               onChange={(e) => setCronExpression(e.target.value)}
+              className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
             />
+            <div className="flex flex-wrap gap-2 mt-2">
+              <span className="text-xs text-gray-500 font-medium mr-1 py-1">Presets:</span>
+              {CRON_PRESETS.map((preset) => (
+                <button
+                  key={preset.cron}
+                  type="button"
+                  className="px-3 py-1 text-xs font-medium bg-white/5 hover:bg-indigo-500/20 border border-white/5 hover:border-indigo-500/30 rounded-lg text-gray-400 hover:text-indigo-300 transition-all"
+                  onClick={() => {
+                    setCronExpression(preset.cron);
+                    showToast(`Applied preset: ${preset.label}`, 'success');
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="field">
-          <span className="presets-label">Quick Presets</span>
-          <div className="cron-presets" role="group" aria-label="Cron schedule presets">
-            {CRON_PRESETS.map((preset) => (
-              <button
-                key={preset.cron}
-                type="button"
-                className="cron-preset-pill"
-                onClick={() => {
-                  setCronExpression(preset.cron);
-                  showToast(`Applied preset: ${preset.label}`, 'success');
-                }}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="field">
-          <label htmlFor="requestBody">Request body JSON (Optional)</label>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="requestBody" className="text-sm font-medium text-gray-300">Request Body JSON (Optional)</label>
           <textarea
             id="requestBody"
-            name="requestBody"
             placeholder='{ "ping": "keep-alive" }'
             value={requestBody}
             onChange={(e) => setRequestBody(e.target.value)}
+            className="w-full px-4 py-3 h-32 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-y"
           />
         </div>
 
-        <div className="field">
-          <label htmlFor="expectedStructure">Expected response JSON (Optional)</label>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="expectedStructure" className="text-sm font-medium text-gray-300">Expected Response JSON (Optional)</label>
           <textarea
             id="expectedStructure"
-            name="expectedStructure"
             placeholder='{ "status": "ok" }'
             value={expectedStructure}
             onChange={(e) => setExpectedStructure(e.target.value)}
+            className="w-full px-4 py-3 h-32 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-y"
           />
         </div>
 
-        <div className="form-actions">
-          <button className="button button-primary" type="submit" disabled={submitting}>
-            <span>{submitting ? (isEditing ? 'Updating...' : 'Saving...') : 'Save monitor'}</span>
+        <div className="mt-4">
+          <button 
+            type="submit" 
+            disabled={submitting}
+            className="w-full py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/25 transition-all hover:shadow-indigo-500/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+          >
+            {submitting ? (isEditing ? 'Updating...' : 'Saving...') : (isEditing ? 'Update Monitor' : 'Create Monitor')}
           </button>
         </div>
       </form>
