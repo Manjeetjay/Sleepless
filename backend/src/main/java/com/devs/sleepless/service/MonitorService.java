@@ -21,17 +21,24 @@ public class MonitorService {
 
     private final MonitorRepository monitorRepository;
     private final MonitorScheduler monitorScheduler;
+    private final CounterCacheService counterCache;
     private final ObjectMapper objectMapper;
 
     public List<Monitor> getAllMonitors() {
-        for (Monitor monitor : monitorRepository.findAll()) {
+        List<Monitor> monitors = monitorRepository.findAll();
+        for (Monitor monitor : monitors) {
             monitorScheduler.schedule(monitor);
+            overlayDeltas(monitor);
         }
-        return monitorRepository.findAll();
+        return monitors;
     }
 
     public Optional<Monitor> getMonitorById(Long id) {
-        return monitorRepository.findById(id);
+        return monitorRepository.findById(id)
+                .map(monitor -> {
+                    overlayDeltas(monitor);
+                    return monitor;
+                });
     }
 
     public Monitor createMonitor(MonitorRequest request) {
@@ -59,8 +66,18 @@ public class MonitorService {
         Monitor monitor = monitorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Monitor not found"));
         monitorScheduler.cancel(id);
+        counterCache.evict(id);
         monitorRepository.delete(monitor);
         return monitor;
+    }
+
+    /**
+     * Overlay in-memory counter deltas onto the DB-persisted values
+     * so API responses always reflect the latest counts.
+     */
+    private void overlayDeltas(Monitor monitor) {
+        monitor.setSuccessCount(monitor.getSuccessCount() + counterCache.getSuccessDelta(monitor.getId()));
+        monitor.setFailureCount(monitor.getFailureCount() + counterCache.getFailureDelta(monitor.getId()));
     }
 
     private void validateCron(String cron) {
@@ -92,3 +109,4 @@ public class MonitorService {
         }
     }
 }
+

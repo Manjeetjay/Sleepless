@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.devs.sleepless.model.Monitor;
-import com.devs.sleepless.repository.MonitorRepository;
 
 import lombok.RequiredArgsConstructor;
 import reactor.util.retry.Retry;
@@ -25,7 +24,7 @@ public class MonitorExecutor {
     private static final Set<String> BODY_METHODS = Set.of("POST", "GET");
 
     private final WebClient webClient = WebClient.create();
-    private final MonitorRepository monitorRepository;
+    private final CounterCacheService counterCache;
     private final ObjectMapper objectMapper;
 
     public void execute(Monitor monitor) {
@@ -55,22 +54,23 @@ public class MonitorExecutor {
             boolean valid = JsonComparator.compare(expected, response);
 
             if (valid) {
+                counterCache.incrementSuccess(monitor.getId());
                 monitor.setSuccessCount(monitor.getSuccessCount() + 1);
                 log.info("[CRON] SUCCESS monitor url={} | successCount={} | failureCount={}",
                         monitor.getUrl(), monitor.getSuccessCount(), monitor.getFailureCount());
             } else {
+                counterCache.incrementFailure(monitor.getId());
                 monitor.setFailureCount(monitor.getFailureCount() + 1);
                 log.warn(
-                        "[CRON] FAILURE monitor url={} | response did not match expected structure | faliureCount = {}",
+                        "[CRON] FAILURE monitor url={} | response did not match expected structure | failureCount={}",
                         monitor.getUrl(), monitor.getFailureCount());
             }
 
-            monitorRepository.save(monitor);
-
         } catch (Exception e) {
+            counterCache.incrementFailure(monitor.getId());
             monitor.setFailureCount(monitor.getFailureCount() + 1);
-            monitorRepository.save(monitor);
             log.error("[CRON] ERROR monitor url={} | error={}", monitor.getUrl(), e.getMessage());
         }
     }
 }
+
